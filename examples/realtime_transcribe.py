@@ -99,8 +99,10 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Real-time transcription from microphone')
     parser.add_argument('--model', default='base',
-                       choices=['tiny', 'base', 'small', 'medium', 'large'],
-                       help='Model size (default: base, recommend tiny for real-time)')
+                       choices=['tiny', 'tiny.en', 'base', 'base.en', 'small', 'small.en',
+                                'medium', 'medium.en', 'large', 'large-v1', 'large-v2', 
+                                'large-v3', 'large-v3-turbo', 'turbo'],
+                       help='Model size (default: base, recommend tiny.en for real-time)')
     parser.add_argument('--language', help='Language code (auto-detect if not specified)')
     parser.add_argument('--duration', type=int, help='Recording duration in seconds')
     

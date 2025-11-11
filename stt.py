@@ -85,7 +85,10 @@ class PowerfulSTT:
         Initialize the STT system.
         
         Args:
-            model_size: Whisper model size ('tiny', 'base', 'small', 'medium', 'large')
+            model_size: Whisper model size. Options: 'tiny', 'tiny.en', 'base', 'base.en',
+                       'small', 'small.en', 'medium', 'medium.en', 'large', 'large-v1', 
+                       'large-v2', 'large-v3', 'large-v3-turbo', 'turbo'.
+                       Models with .en suffix are English-only and faster.
             device: Device to run on ('cuda', 'cpu', or None for auto)
             enable_noise_reduction: Whether to apply noise reduction
         """
@@ -331,6 +334,15 @@ Examples:
   # Use larger model for better accuracy
   python stt.py audio.wav --model medium
   
+  # Use English-only model for faster processing
+  python stt.py english_audio.wav --model base.en
+  
+  # Use latest model for best accuracy
+  python stt.py audio.wav --model large-v3
+  
+  # Use turbo model for speed + accuracy balance
+  python stt.py audio.wav --model turbo
+  
   # Disable noise reduction for clean audio
   python stt.py audio.wav --no-noise-reduction
   
@@ -359,9 +371,12 @@ Tatar, Hawaiian, Lingala, Hausa, Bashkir, Javanese, Sundanese, and many more!
     
     parser.add_argument(
         '--model',
-        choices=['tiny', 'base', 'small', 'medium', 'large'],
+        choices=['tiny', 'tiny.en', 'base', 'base.en', 'small', 'small.en', 
+                 'medium', 'medium.en', 'large', 'large-v1', 'large-v2', 'large-v3', 
+                 'large-v3-turbo', 'turbo'],
         default='base',
-        help='Whisper model size (default: base). Larger models are more accurate but slower.'
+        help='Whisper model size (default: base). Models with .en are English-only and faster. '
+             'Larger models are more accurate but slower. v3 and turbo are the latest versions.'
     )
     
     parser.add_argument(

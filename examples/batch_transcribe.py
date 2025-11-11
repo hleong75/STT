@@ -72,8 +72,10 @@ if __name__ == '__main__':
     parser.add_argument('input_dir', help='Directory containing audio files')
     parser.add_argument('output_dir', help='Directory to save transcriptions')
     parser.add_argument('--model', default='base', 
-                       choices=['tiny', 'base', 'small', 'medium', 'large'],
-                       help='Model size (default: base)')
+                       choices=['tiny', 'tiny.en', 'base', 'base.en', 'small', 'small.en',
+                                'medium', 'medium.en', 'large', 'large-v1', 'large-v2', 
+                                'large-v3', 'large-v3-turbo', 'turbo'],
+                       help='Model size (default: base). .en models are English-only.')
     parser.add_argument('--language', help='Language code (auto-detect if not specified)')
     
     args = parser.parse_args()

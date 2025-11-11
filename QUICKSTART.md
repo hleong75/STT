@@ -43,6 +43,12 @@ python stt.py audio.wav --language en
 python stt.py audio.wav --model medium
 ```
 
+**Model Options:**
+- **Multilingual**: `tiny`, `base` (default), `small`, `medium`, `large`, `large-v3`, `turbo`
+- **English-only (faster)**: `tiny.en`, `base.en`, `small.en`, `medium.en`
+
+Use `.en` models for English audio to get 2x faster transcription!
+
 ### Get timestamps
 ```bash
 python stt.py audio.wav --timestamps
@@ -75,7 +81,8 @@ python stt.py french_audio.wav --translate
 - Or run on CPU: `--device cpu`
 
 **Low accuracy?**
-- Try a larger model: `--model medium` or `--model large`
+- Try a larger model: `--model medium` or `--model large-v3`
+- For English audio, try: `--model medium.en` (faster and accurate)
 - Ensure audio quality is good
 
 ## Language Codes
