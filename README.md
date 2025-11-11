@@ -50,6 +50,26 @@ Transcribe an audio file with automatic language detection:
 python stt.py audio.wav
 ```
 
+### Process Directory (Batch Mode)
+
+Process all audio files in a directory:
+
+```bash
+python stt.py audio_directory/
+```
+
+Save transcriptions to an output directory:
+
+```bash
+python stt.py audio_directory/ --output transcripts/
+```
+
+The program will automatically:
+- Find all audio files (WAV, MP3, FLAC, OGG, M4A, etc.)
+- Process each file
+- Save individual transcripts (when `--output` is specified)
+- Show progress for each file
+
 ### Specify Language
 
 Transcribe with a specific language:
@@ -164,7 +184,23 @@ Supports all common audio formats:
 
 ### Batch Processing
 
-Process multiple files:
+Process an entire directory of audio files:
+
+```bash
+# Process all audio files in a directory
+python stt.py my_audio_files/ --output transcripts/
+
+# Process with specific options
+python stt.py recordings/ --output transcripts/ --language en --model medium
+```
+
+The built-in directory processing will:
+- Automatically detect all audio files (WAV, MP3, FLAC, OGG, M4A, WMA, AAC)
+- Process each file sequentially
+- Save individual transcripts to the output directory
+- Show progress and success/failure status for each file
+
+Alternatively, for shell-based batch processing:
 
 ```bash
 for file in *.wav; do
@@ -180,13 +216,19 @@ done
 python stt.py french_audio.mp3 --language fr --output transcript_fr.txt
 ```
 
-### Example 2: Transcribe noisy English audio with timestamps
+### Example 2: Process an entire directory of meetings
+
+```bash
+python stt.py meeting_recordings/ --output transcripts/ --language en --model medium
+```
+
+### Example 3: Transcribe noisy English audio with timestamps
 
 ```bash
 python stt.py noisy_meeting.wav --language en --timestamps --model medium
 ```
 
-### Example 3: Translate Chinese to English
+### Example 4: Translate Chinese to English
 
 ```bash
 python stt.py chinese_podcast.m4a --language zh --translate

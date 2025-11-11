@@ -165,6 +165,98 @@ class PowerfulSTT:
         }
 
 
+def process_directory(stt, directory_path, args):
+    """
+    Process all audio files in a directory.
+    
+    Args:
+        stt: PowerfulSTT instance
+        directory_path: Path to directory containing audio files
+        args: Command-line arguments
+    """
+    # Supported audio extensions
+    audio_extensions = {'.wav', '.mp3', '.flac', '.ogg', '.m4a', '.wma', '.aac'}
+    
+    # Find all audio files
+    audio_files = []
+    directory = Path(directory_path)
+    for ext in audio_extensions:
+        audio_files.extend(directory.glob(f'*{ext}'))
+        audio_files.extend(directory.glob(f'*{ext.upper()}'))
+    
+    if not audio_files:
+        print(f"No audio files found in {directory_path}")
+        return
+    
+    print(f"\nFound {len(audio_files)} audio files to process")
+    print("=" * 80)
+    
+    # Create output directory if output path is specified
+    output_dir = None
+    if args.output:
+        output_dir = Path(args.output)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        print(f"Output directory: {output_dir}\n")
+    
+    # Process each file
+    task = 'translate' if args.translate else 'transcribe'
+    success_count = 0
+    
+    for i, audio_file in enumerate(audio_files, 1):
+        print(f"\n[{i}/{len(audio_files)}] Processing: {audio_file.name}")
+        print("-" * 80)
+        
+        try:
+            if args.timestamps:
+                result = stt.transcribe_with_timestamps(str(audio_file), language=args.language)
+                
+                # Format output
+                output_lines = []
+                output_lines.append(f"File: {audio_file.name}")
+                output_lines.append(f"Language: {result['language']}")
+                output_lines.append(f"\nFull transcription:\n{result['text']}\n")
+                output_lines.append("\nSegments with timestamps:")
+                
+                for segment in result['segments']:
+                    start_time = f"{int(segment['start'] // 60):02d}:{segment['start'] % 60:05.2f}"
+                    end_time = f"{int(segment['end'] // 60):02d}:{segment['end'] % 60:05.2f}"
+                    output_lines.append(f"[{start_time} -> {end_time}] {segment['text']}")
+                
+                output = '\n'.join(output_lines)
+            else:
+                result = stt.transcribe(str(audio_file), language=args.language, task=task, verbose=False)
+                
+                # Format output
+                output_lines = []
+                output_lines.append(f"File: {audio_file.name}")
+                if 'language' in result:
+                    output_lines.append(f"Language: {result['language']}")
+                output_lines.append(f"\nTranscription:\n{result['text']}")
+                output = '\n'.join(output_lines)
+            
+            # Output results
+            if output_dir:
+                output_file = output_dir / f"{audio_file.stem}.txt"
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    f.write(output)
+                print(f"✓ Saved to: {output_file}")
+            else:
+                print(output)
+            
+            success_count += 1
+            
+        except Exception as e:
+            print(f"✗ Error: {e}")
+            continue
+    
+    print("\n" + "=" * 80)
+    print(f"Processing complete: {success_count}/{len(audio_files)} files succeeded")
+    if success_count < len(audio_files):
+        print(f"⚠ {len(audio_files) - success_count} files failed")
+    else:
+        print("✓ All files processed successfully!")
+
+
 def main():
     """Main CLI interface for the STT system."""
     parser = argparse.ArgumentParser(
@@ -174,6 +266,12 @@ def main():
 Examples:
   # Basic transcription with auto-language detection
   python stt.py audio.wav
+  
+  # Transcribe all audio files in a directory
+  python stt.py audio_directory/
+  
+  # Transcribe directory and save outputs to another directory
+  python stt.py audio_directory/ --output transcripts/
   
   # Transcribe with specific language
   python stt.py audio.wav --language fr
@@ -207,7 +305,7 @@ Tatar, Hawaiian, Lingala, Hausa, Bashkir, Javanese, Sundanese, and many more!
     
     parser.add_argument(
         'audio_file',
-        help='Path to audio file (supports WAV, MP3, FLAC, OGG, etc.)'
+        help='Path to audio file or directory (supports WAV, MP3, FLAC, OGG, etc.)'
     )
     
     parser.add_argument(
@@ -242,7 +340,7 @@ Tatar, Hawaiian, Lingala, Hausa, Bashkir, Javanese, Sundanese, and many more!
     
     parser.add_argument(
         '--output',
-        help='Output file path (default: stdout)'
+        help='Output file path (for single file) or directory (for batch processing)'
     )
     
     parser.add_argument(
@@ -252,6 +350,15 @@ Tatar, Hawaiian, Lingala, Hausa, Bashkir, Javanese, Sundanese, and many more!
     )
     
     args = parser.parse_args()
+    
+    # Check if input is a directory or file
+    input_path = Path(args.audio_file)
+    
+    if not input_path.exists():
+        print(f"Error: Path not found: {args.audio_file}", file=sys.stderr)
+        sys.exit(1)
+    
+    is_directory = input_path.is_dir()
     
     # Initialize STT system
     try:
@@ -264,46 +371,50 @@ Tatar, Hawaiian, Lingala, Hausa, Bashkir, Javanese, Sundanese, and many more!
         print(f"Error initializing STT system: {e}", file=sys.stderr)
         sys.exit(1)
     
-    # Transcribe audio
+    # Process directory or single file
     try:
-        task = 'translate' if args.translate else 'transcribe'
-        
-        if args.timestamps:
-            result = stt.transcribe_with_timestamps(args.audio_file, language=args.language)
-            
-            # Format output
-            output_lines = []
-            output_lines.append(f"Language: {result['language']}")
-            output_lines.append(f"\nFull transcription:\n{result['text']}\n")
-            output_lines.append("\nSegments with timestamps:")
-            
-            for segment in result['segments']:
-                start_time = f"{int(segment['start'] // 60):02d}:{segment['start'] % 60:05.2f}"
-                end_time = f"{int(segment['end'] // 60):02d}:{segment['end'] % 60:05.2f}"
-                output_lines.append(f"[{start_time} -> {end_time}] {segment['text']}")
-            
-            output = '\n'.join(output_lines)
+        if is_directory:
+            process_directory(stt, args.audio_file, args)
         else:
-            result = stt.transcribe(args.audio_file, language=args.language, task=task)
+            # Original single file processing
+            task = 'translate' if args.translate else 'transcribe'
             
-            # Format output
-            output_lines = []
-            if 'language' in result:
+            if args.timestamps:
+                result = stt.transcribe_with_timestamps(args.audio_file, language=args.language)
+                
+                # Format output
+                output_lines = []
                 output_lines.append(f"Language: {result['language']}")
-            output_lines.append(f"\nTranscription:\n{result['text']}")
-            output = '\n'.join(output_lines)
-        
-        # Output results
-        if args.output:
-            with open(args.output, 'w', encoding='utf-8') as f:
-                f.write(output)
-            print(f"\nResults saved to: {args.output}")
-        else:
-            print("\n" + "=" * 80)
-            print(output)
-            print("=" * 80)
-        
-        print("\n✓ Transcription completed successfully!")
+                output_lines.append(f"\nFull transcription:\n{result['text']}\n")
+                output_lines.append("\nSegments with timestamps:")
+                
+                for segment in result['segments']:
+                    start_time = f"{int(segment['start'] // 60):02d}:{segment['start'] % 60:05.2f}"
+                    end_time = f"{int(segment['end'] // 60):02d}:{segment['end'] % 60:05.2f}"
+                    output_lines.append(f"[{start_time} -> {end_time}] {segment['text']}")
+                
+                output = '\n'.join(output_lines)
+            else:
+                result = stt.transcribe(args.audio_file, language=args.language, task=task)
+                
+                # Format output
+                output_lines = []
+                if 'language' in result:
+                    output_lines.append(f"Language: {result['language']}")
+                output_lines.append(f"\nTranscription:\n{result['text']}")
+                output = '\n'.join(output_lines)
+            
+            # Output results
+            if args.output:
+                with open(args.output, 'w', encoding='utf-8') as f:
+                    f.write(output)
+                print(f"\nResults saved to: {args.output}")
+            else:
+                print("\n" + "=" * 80)
+                print(output)
+                print("=" * 80)
+            
+            print("\n✓ Transcription completed successfully!")
         
     except Exception as e:
         print(f"Error during transcription: {e}", file=sys.stderr)
