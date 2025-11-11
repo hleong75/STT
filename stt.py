@@ -7,6 +7,7 @@ Supports all languages and is robust to audio noise
 import argparse
 import os
 import sys
+import time
 import warnings
 from pathlib import Path
 
@@ -61,6 +62,74 @@ except ImportError:
 warnings.filterwarnings("ignore")
 
 
+def load_model_with_retry(model_size, device, max_retries=3, initial_delay=1):
+    """
+    Load Whisper model with retry logic for handling transient failures.
+    
+    Args:
+        model_size: Whisper model size to load
+        device: Device to load model on ('cuda' or 'cpu')
+        max_retries: Maximum number of retry attempts (default: 3)
+        initial_delay: Initial delay in seconds before first retry (default: 1)
+        
+    Returns:
+        Loaded Whisper model
+        
+    Raises:
+        Exception: If model loading fails after all retries
+    """
+    # Validate model name before attempting to load
+    valid_models = [
+        'tiny', 'tiny.en', 'base', 'base.en', 'small', 'small.en',
+        'medium', 'medium.en', 'large', 'large-v1', 'large-v2', 
+        'large-v3', 'large-v3-turbo', 'turbo'
+    ]
+    
+    if model_size not in valid_models:
+        raise ValueError(
+            f"Invalid model name '{model_size}'. "
+            f"Valid options are: {', '.join(valid_models)}"
+        )
+    
+    last_exception = None
+    delay = initial_delay
+    
+    for attempt in range(max_retries):
+        try:
+            print(f"Loading Whisper model '{model_size}' on {device}...")
+            if attempt > 0:
+                print(f"  (Attempt {attempt + 1}/{max_retries})")
+            
+            model = whisper.load_model(model_size, device=device)
+            print("Model loaded successfully!")
+            return model
+            
+        except Exception as e:
+            last_exception = e
+            error_msg = str(e)
+            
+            # Check for common error types and provide helpful messages
+            if "No such file or directory" in error_msg or "FileNotFoundError" in str(type(e)):
+                print(f"⚠ Warning: Model file not found. Attempting to download...", file=sys.stderr)
+            elif "Connection" in error_msg or "Network" in error_msg or "HTTP" in error_msg:
+                print(f"⚠ Warning: Network error while downloading model. Will retry...", file=sys.stderr)
+            elif "Out of memory" in error_msg or "CUDA out of memory" in error_msg:
+                print(f"❌ Error: Out of memory. Try using a smaller model or --device cpu", file=sys.stderr)
+                raise  # Don't retry for OOM errors
+            else:
+                print(f"⚠ Warning: Error loading model: {error_msg}", file=sys.stderr)
+            
+            # If this isn't the last attempt, wait before retrying
+            if attempt < max_retries - 1:
+                print(f"  Retrying in {delay} seconds...", file=sys.stderr)
+                time.sleep(delay)
+                delay *= 2  # Exponential backoff
+            else:
+                # Last attempt failed, raise the exception
+                print(f"❌ Error: Failed to load model after {max_retries} attempts", file=sys.stderr)
+                raise last_exception
+
+
 class PowerfulSTT:
     """
     A powerful Speech-to-Text system with multi-language support
@@ -101,9 +170,8 @@ class PowerfulSTT:
         else:
             self.device = device
         
-        print(f"Loading Whisper model '{model_size}' on {self.device}...")
-        self.model = whisper.load_model(model_size, device=self.device)
-        print("Model loaded successfully!")
+        # Load model with retry logic
+        self.model = load_model_with_retry(model_size, self.device)
     
     def reduce_noise(self, audio, sample_rate):
         """
@@ -431,8 +499,22 @@ Tatar, Hawaiian, Lingala, Hausa, Bashkir, Javanese, Sundanese, and many more!
             device=args.device,
             enable_noise_reduction=not args.no_noise_reduction
         )
+    except ValueError as e:
+        # Handle invalid model names
+        print(f"\n❌ Invalid model configuration: {e}", file=sys.stderr)
+        print(f"\nAvailable models:", file=sys.stderr)
+        print(f"  - Multilingual: tiny, base, small, medium, large, large-v1, large-v2, large-v3, large-v3-turbo, turbo", file=sys.stderr)
+        print(f"  - English-only: tiny.en, base.en, small.en, medium.en", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
-        print(f"Error initializing STT system: {e}", file=sys.stderr)
+        # Handle other errors during initialization
+        print(f"\n❌ Error initializing STT system: {e}", file=sys.stderr)
+        print(f"\nTroubleshooting tips:", file=sys.stderr)
+        print(f"  1. Check your internet connection (models are downloaded on first use)", file=sys.stderr)
+        print(f"  2. Ensure you have enough disk space (~1-10GB depending on model)", file=sys.stderr)
+        print(f"  3. Try a smaller model: --model tiny", file=sys.stderr)
+        print(f"  4. Try forcing CPU: --device cpu", file=sys.stderr)
+        print(f"  5. Check the model cache directory has write permissions", file=sys.stderr)
         sys.exit(1)
     
     # Process directory or single file
