@@ -59,13 +59,6 @@ except ImportError:
     print("\nFor more information, see README.md or QUICKSTART.md", file=sys.stderr)
     sys.exit(1)
 
-# OpenAI API for post-processing (optional)
-try:
-    from openai import OpenAI
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
-
 warnings.filterwarnings("ignore")
 
 
@@ -286,7 +279,7 @@ class PowerfulSTT:
     
     def format_as_newspaper_article(self, transcription_text, language=None):
         """
-        Format transcription text as a newspaper article using AI.
+        Format transcription text as a newspaper article using rule-based formatting.
         
         Args:
             transcription_text: Raw transcription text to format
@@ -294,90 +287,72 @@ class PowerfulSTT:
             
         Returns:
             Dictionary containing formatted article with title, body, etc.
-            
-        Raises:
-            RuntimeError: If OpenAI API is not available or configured
         """
-        if not OPENAI_AVAILABLE:
-            raise RuntimeError(
-                "OpenAI API is not available. Please install it with: pip install openai"
-            )
+        print("Formatting transcription as newspaper article...")
         
-        # Check for API key
-        api_key = os.environ.get('OPENAI_API_KEY')
-        if not api_key:
-            raise RuntimeError(
-                "OPENAI_API_KEY environment variable not set. "
-                "Please set it with your OpenAI API key to use newspaper article formatting."
-            )
+        # Clean and normalize the text
+        text = transcription_text.strip()
         
-        print("Formatting transcription as newspaper article with AI...")
+        # Split into sentences
+        # Simple sentence splitting on common punctuation
+        import re
+        sentences = re.split(r'[.!?]+\s+', text)
+        sentences = [s.strip() for s in sentences if s.strip()]
         
-        # Create OpenAI client
-        client = OpenAI(api_key=api_key)
-        
-        # Determine language instruction
-        lang_instruction = ""
-        if language:
-            lang_map = {
-                'en': 'English',
-                'fr': 'French', 
-                'es': 'Spanish',
-                'de': 'German',
-                'it': 'Italian',
-                'pt': 'Portuguese',
-                'zh': 'Chinese',
-                'ja': 'Japanese',
-                'ko': 'Korean',
-                'ar': 'Arabic'
+        if not sentences:
+            return {
+                'title': 'Untitled Article',
+                'lead': '',
+                'body': text,
+                'sections': []
             }
-            lang_name = lang_map.get(language, language)
-            lang_instruction = f" The article should be in {lang_name}."
         
-        # Create prompt for AI
-        prompt = f"""You are a professional newspaper editor. Please format the following transcription as a proper newspaper article.
-
-Tasks:
-1. Create an appropriate headline/title for the article
-2. Structure the content with proper paragraphs
-3. Correct any transcription errors or grammar issues
-4. Maintain the original meaning and key information
-5. Use proper newspaper article formatting with clear sections
-6. Add section headers if appropriate{lang_instruction}
-
-Transcription to format:
-{transcription_text}
-
-Please return the formatted article in the following JSON format:
-{{
-    "title": "Article headline",
-    "lead": "Opening paragraph or lead (first 1-2 sentences summarizing the story)",
-    "body": "Main article body with proper paragraphing",
-    "sections": ["Optional array of main sections/topics covered"]
-}}
-"""
+        # Generate title from first sentence (truncate if too long)
+        title = sentences[0] if sentences else 'Untitled Article'
+        if len(title) > 100:
+            # Take first meaningful words as title
+            words = title.split()[:10]
+            title = ' '.join(words) + '...'
         
-        try:
-            # Call OpenAI API
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",  # Using cost-effective model
-                messages=[
-                    {"role": "system", "content": "You are a professional newspaper editor who formats transcriptions into well-structured newspaper articles."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.3,
-                response_format={"type": "json_object"}
-            )
-            
-            # Parse response
-            import json
-            formatted_article = json.loads(response.choices[0].message.content)
-            
-            print("✓ Successfully formatted as newspaper article")
-            return formatted_article
-            
-        except Exception as e:
-            raise RuntimeError(f"Error formatting article with AI: {e}")
+        # Lead paragraph: first 1-2 sentences
+        lead_sentences = sentences[:min(2, len(sentences))]
+        lead = '. '.join(lead_sentences) + '.'
+        
+        # Body: remaining sentences organized into paragraphs
+        remaining_sentences = sentences[2:] if len(sentences) > 2 else []
+        
+        # Group sentences into paragraphs (approximately 3-4 sentences per paragraph)
+        paragraphs = []
+        paragraph_size = 3
+        
+        for i in range(0, len(remaining_sentences), paragraph_size):
+            paragraph_sentences = remaining_sentences[i:i + paragraph_size]
+            paragraph = '. '.join(paragraph_sentences)
+            if paragraph:
+                paragraphs.append(paragraph + '.')
+        
+        body = '\n\n'.join(paragraphs) if paragraphs else ''
+        
+        # Extract key topics/sections (look for repeated key words)
+        sections = []
+        # Simple keyword extraction: find common important words
+        words = re.findall(r'\b[A-Z][a-z]+\b', text)  # Capitalized words
+        if words:
+            # Count frequency
+            from collections import Counter
+            word_counts = Counter(words)
+            # Get top 3-5 most common capitalized words as topics
+            common_words = [word for word, count in word_counts.most_common(5) if count > 1]
+            sections = common_words[:3]  # Limit to top 3
+        
+        print("✓ Successfully formatted as newspaper article")
+        
+        return {
+            'title': title,
+            'lead': lead,
+            'body': body,
+            'sections': sections
+        }
 
 
 def process_directory(stt, directory_path, args):
@@ -625,7 +600,7 @@ Tatar, Hawaiian, Lingala, Hausa, Bashkir, Javanese, Sundanese, and many more!
     parser.add_argument(
         '--newspaper-article',
         action='store_true',
-        help='Format transcription as a newspaper article using AI (requires OPENAI_API_KEY)'
+        help='Format transcription as a newspaper article with structured layout'
     )
     
     args = parser.parse_args()

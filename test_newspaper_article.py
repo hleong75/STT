@@ -67,42 +67,47 @@ def test_cli_flag():
     return True
 
 
-def test_openai_import():
-    """Test that OpenAI import is handled."""
-    print("\nTesting OpenAI import handling...")
+def test_rule_based_formatting():
+    """Test that rule-based formatting is implemented."""
+    print("\nTesting rule-based formatting...")
     
     with open('stt.py', 'r') as f:
         content = f.read()
     
-    # Check for OpenAI import
-    if 'from openai import' not in content and 'import openai' not in content:
-        print("❌ OpenAI import not found")
+    # Check that OpenAI is NOT required
+    if 'OPENAI_AVAILABLE' in content:
+        print("❌ Code still references OPENAI_AVAILABLE")
         return False
     
-    print("✓ OpenAI import found")
+    print("✓ OpenAI dependency removed")
     
-    # Check for availability flag
-    if 'OPENAI_AVAILABLE' not in content:
-        print("❌ OPENAI_AVAILABLE flag not found")
+    # Check for rule-based implementation markers
+    if 're.split' not in content or 'sentences' not in content:
+        print("❌ Rule-based text processing not found")
         return False
     
-    print("✓ OPENAI_AVAILABLE flag found")
+    print("✓ Rule-based text processing found")
     
     return True
 
 
 def test_requirements():
-    """Test that openai is in requirements.txt."""
+    """Test that openai is NOT in requirements.txt."""
     print("\nTesting requirements.txt...")
     
     with open('requirements.txt', 'r') as f:
         content = f.read()
     
-    if 'openai' not in content.lower():
-        print("❌ openai not found in requirements.txt")
+    # Check that openai package (not openai-whisper) is NOT in requirements
+    lines = content.lower().split('\n')
+    has_openai_package = any(line.startswith('openai>=') or line.startswith('openai==') 
+                               for line in lines)
+    
+    if has_openai_package:
+        print("❌ openai package still in requirements.txt")
         return False
     
-    print("✓ openai found in requirements.txt")
+    print("✓ openai package removed from requirements.txt")
     
     return True
 
@@ -128,12 +133,12 @@ def test_documentation():
     
     print("✓ --newspaper-article flag documented")
     
-    # Check for OPENAI_API_KEY mention
-    if 'OPENAI_API_KEY' not in content:
-        print("❌ OPENAI_API_KEY not mentioned in documentation")
+    # Check that OPENAI_API_KEY is NOT mentioned (since we removed API dependency)
+    if 'OPENAI_API_KEY' in content:
+        print("❌ OPENAI_API_KEY still mentioned in documentation")
         return False
     
-    print("✓ OPENAI_API_KEY documented")
+    print("✓ OPENAI_API_KEY removed from documentation")
     
     return True
 
@@ -145,16 +150,16 @@ def test_error_handling():
     with open('stt.py', 'r') as f:
         content = f.read()
     
-    # Check for API key check
-    if 'OPENAI_API_KEY' not in content:
-        print("❌ OPENAI_API_KEY check not found")
+    # Check that API key check is NOT present (since we removed API dependency)
+    if 'OPENAI_API_KEY' in content:
+        print("❌ OPENAI_API_KEY check still present")
         return False
     
-    print("✓ OPENAI_API_KEY check found")
+    print("✓ OPENAI_API_KEY check removed")
     
-    # Check for RuntimeError or similar error handling
-    if 'RuntimeError' not in content and 'raise' not in content:
-        print("❌ Error handling not found")
+    # Check for basic error handling
+    if 'try:' not in content or 'except' not in content:
+        print("❌ Basic error handling not found")
         return False
     
     print("✓ Error handling found")
@@ -171,7 +176,7 @@ def main():
     tests = [
         test_newspaper_article_method,
         test_cli_flag,
-        test_openai_import,
+        test_rule_based_formatting,
         test_requirements,
         test_documentation,
         test_error_handling,

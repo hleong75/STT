@@ -23,13 +23,6 @@ def format_audio_as_article(audio_file, language='en'):
         audio_file: Path to audio file
         language: Language code (e.g., 'en', 'fr')
     """
-    # Check for API key
-    api_key = os.environ.get('OPENAI_API_KEY')
-    if not api_key:
-        print("⚠ Warning: OPENAI_API_KEY environment variable not set.")
-        print("Please set it with: export OPENAI_API_KEY='your-api-key-here'")
-        return
-    
     print("=" * 80)
     print("Newspaper Article Formatting Example")
     print("=" * 80)
@@ -47,7 +40,7 @@ def format_audio_as_article(audio_file, language='en'):
     print("-" * 80)
     
     # Format as newspaper article
-    print("\n3. Formatting as newspaper article with AI...")
+    print("\n3. Formatting as newspaper article...")
     try:
         article = stt.format_as_newspaper_article(result['text'], language=language)
         
@@ -66,7 +59,7 @@ def format_audio_as_article(audio_file, language='en'):
         print(article.get('body', ''))
         
         if 'sections' in article and article['sections']:
-            print(f"\n\nMAIN SECTIONS COVERED:")
+            print(f"\n\nMAIN TOPICS COVERED:")
             for i, section in enumerate(article['sections'], 1):
                 print(f"  {i}. {section}")
         
@@ -82,7 +75,7 @@ def format_audio_as_article(audio_file, language='en'):
                 f.write(f"LEAD:\n{article['lead']}\n\n")
             f.write(f"ARTICLE:\n{article.get('body', '')}\n")
             if 'sections' in article and article['sections']:
-                f.write("\n\nSECTIONS:\n")
+                f.write("\n\nTOPICS:\n")
                 for section in article['sections']:
                     f.write(f"  • {section}\n")
         
@@ -90,7 +83,6 @@ def format_audio_as_article(audio_file, language='en'):
         
     except Exception as e:
         print(f"❌ Error formatting article: {e}")
-        print("Please check that your OPENAI_API_KEY is valid and you have API credits.")
 
 
 def main():
@@ -100,8 +92,6 @@ def main():
         print("\nExample:")
         print("  python newspaper_article_example.py news_recording.wav en")
         print("  python newspaper_article_example.py interview.mp3 fr")
-        print("\nNote: Set OPENAI_API_KEY environment variable before running:")
-        print("  export OPENAI_API_KEY='your-api-key-here'")
         sys.exit(1)
     
     audio_file = sys.argv[1]

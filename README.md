@@ -135,12 +135,9 @@ python stt.py audio.wav --device cpu
 
 ### Newspaper Article Formatting
 
-Format transcription as a professional newspaper article using AI:
+Format transcription as a professional newspaper article:
 
 ```bash
-# Set your OpenAI API key
-export OPENAI_API_KEY="your-api-key-here"
-
 # Format transcription as newspaper article
 python stt.py audio.wav --newspaper-article --output article.txt
 
@@ -149,13 +146,13 @@ python stt.py audio.wav --language fr --newspaper-article --output article_fr.tx
 ```
 
 This feature:
-- Creates an appropriate headline/title
+- Creates an appropriate headline/title from the first sentence
 - Structures content with proper paragraphs
-- Corrects transcription errors and grammar
-- Maintains original meaning and key information
+- Organizes text into lead paragraph and body sections
+- Extracts key topics mentioned in the transcription
 - Uses proper newspaper article formatting
 
-**Note**: Requires `OPENAI_API_KEY` environment variable to be set with a valid OpenAI API key.
+**Note**: Uses rule-based text formatting - no API key required.
 
 See `examples/newspaper_article_example.py` for a complete working example.
 
@@ -165,7 +162,6 @@ You can also use the STT system programmatically:
 
 ```python
 from stt import PowerfulSTT
-import os
 
 # Initialize the system
 stt = PowerfulSTT(model_size='base', enable_noise_reduction=True)
@@ -180,7 +176,6 @@ for segment in result['segments']:
     print(f"[{segment['start']:.2f}s - {segment['end']:.2f}s] {segment['text']}")
 
 # Format transcription as newspaper article
-os.environ['OPENAI_API_KEY'] = 'your-api-key-here'
 result = stt.transcribe('news_audio.wav', language='en')
 article = stt.format_as_newspaper_article(result['text'], language='en')
 print(f"Title: {article['title']}")
@@ -280,9 +275,6 @@ python stt.py chinese_podcast.m4a --language zh --translate
 ### Example 5: Format transcription as a newspaper article
 
 ```bash
-# Set your OpenAI API key
-export OPENAI_API_KEY="your-api-key-here"
-
 # Format a news recording as a newspaper article
 python stt.py news_recording.wav --language en --newspaper-article --output news_article.txt
 ```
@@ -300,12 +292,6 @@ python stt.py news_recording.wav --language en --newspaper-article --output news
 
 **Issue**: Out of memory error
 - **Solution**: Use a smaller model or run on CPU with `--device cpu`
-
-**Issue**: Newspaper article formatting not working
-- **Solution**: Ensure `OPENAI_API_KEY` environment variable is set with a valid OpenAI API key. Run `pip install openai` if needed.
-
-**Issue**: "OpenAI API is not available" error
-- **Solution**: Install the OpenAI package with `pip install openai`
 
 ## 📄 License
 
