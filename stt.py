@@ -59,6 +59,13 @@ except ImportError:
     print("\nFor more information, see README.md or QUICKSTART.md", file=sys.stderr)
     sys.exit(1)
 
+# OpenAI API for post-processing (optional)
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+
 warnings.filterwarnings("ignore")
 
 
@@ -276,6 +283,101 @@ class PowerfulSTT:
             'language': result.get('language', 'unknown'),
             'segments': segments
         }
+    
+    def format_as_newspaper_article(self, transcription_text, language=None):
+        """
+        Format transcription text as a newspaper article using AI.
+        
+        Args:
+            transcription_text: Raw transcription text to format
+            language: Language code of the transcription (e.g., 'en', 'fr')
+            
+        Returns:
+            Dictionary containing formatted article with title, body, etc.
+            
+        Raises:
+            RuntimeError: If OpenAI API is not available or configured
+        """
+        if not OPENAI_AVAILABLE:
+            raise RuntimeError(
+                "OpenAI API is not available. Please install it with: pip install openai"
+            )
+        
+        # Check for API key
+        api_key = os.environ.get('OPENAI_API_KEY')
+        if not api_key:
+            raise RuntimeError(
+                "OPENAI_API_KEY environment variable not set. "
+                "Please set it with your OpenAI API key to use newspaper article formatting."
+            )
+        
+        print("Formatting transcription as newspaper article with AI...")
+        
+        # Create OpenAI client
+        client = OpenAI(api_key=api_key)
+        
+        # Determine language instruction
+        lang_instruction = ""
+        if language:
+            lang_map = {
+                'en': 'English',
+                'fr': 'French', 
+                'es': 'Spanish',
+                'de': 'German',
+                'it': 'Italian',
+                'pt': 'Portuguese',
+                'zh': 'Chinese',
+                'ja': 'Japanese',
+                'ko': 'Korean',
+                'ar': 'Arabic'
+            }
+            lang_name = lang_map.get(language, language)
+            lang_instruction = f" The article should be in {lang_name}."
+        
+        # Create prompt for AI
+        prompt = f"""You are a professional newspaper editor. Please format the following transcription as a proper newspaper article.
+
+Tasks:
+1. Create an appropriate headline/title for the article
+2. Structure the content with proper paragraphs
+3. Correct any transcription errors or grammar issues
+4. Maintain the original meaning and key information
+5. Use proper newspaper article formatting with clear sections
+6. Add section headers if appropriate{lang_instruction}
+
+Transcription to format:
+{transcription_text}
+
+Please return the formatted article in the following JSON format:
+{{
+    "title": "Article headline",
+    "lead": "Opening paragraph or lead (first 1-2 sentences summarizing the story)",
+    "body": "Main article body with proper paragraphing",
+    "sections": ["Optional array of main sections/topics covered"]
+}}
+"""
+        
+        try:
+            # Call OpenAI API
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",  # Using cost-effective model
+                messages=[
+                    {"role": "system", "content": "You are a professional newspaper editor who formats transcriptions into well-structured newspaper articles."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                response_format={"type": "json_object"}
+            )
+            
+            # Parse response
+            import json
+            formatted_article = json.loads(response.choices[0].message.content)
+            
+            print("✓ Successfully formatted as newspaper article")
+            return formatted_article
+            
+        except Exception as e:
+            raise RuntimeError(f"Error formatting article with AI: {e}")
 
 
 def process_directory(stt, directory_path, args):
@@ -342,13 +444,52 @@ def process_directory(stt, directory_path, args):
             else:
                 result = stt.transcribe(str(audio_file), language=args.language, task=task, verbose=False)
                 
-                # Format output
-                output_lines = []
-                output_lines.append(f"File: {audio_file.name}")
-                if 'language' in result:
-                    output_lines.append(f"Language: {result['language']}")
-                output_lines.append(f"\nTranscription:\n{result['text']}")
-                output = '\n'.join(output_lines)
+                # Check if newspaper article formatting is requested
+                if args.newspaper_article:
+                    try:
+                        article = stt.format_as_newspaper_article(
+                            result['text'],
+                            language=result.get('language')
+                        )
+                        
+                        # Format as newspaper article
+                        output_lines = []
+                        output_lines.append(f"File: {audio_file.name}")
+                        if 'language' in result:
+                            output_lines.append(f"Language: {result['language']}")
+                        output_lines.append(f"\n{'=' * 80}")
+                        output_lines.append(f"HEADLINE: {article.get('title', 'Untitled')}")
+                        output_lines.append(f"{'=' * 80}\n")
+                        
+                        if 'lead' in article and article['lead']:
+                            output_lines.append(f"LEAD:\n{article['lead']}\n")
+                        
+                        output_lines.append(f"ARTICLE:\n{article.get('body', '')}")
+                        
+                        if 'sections' in article and article['sections']:
+                            output_lines.append(f"\n\nMAIN SECTIONS:")
+                            for section in article['sections']:
+                                output_lines.append(f"  • {section}")
+                        
+                        output = '\n'.join(output_lines)
+                    except Exception as e:
+                        print(f"⚠ Warning: Could not format as newspaper article: {e}")
+                        print(f"Falling back to standard transcription format...")
+                        # Fall back to standard format
+                        output_lines = []
+                        output_lines.append(f"File: {audio_file.name}")
+                        if 'language' in result:
+                            output_lines.append(f"Language: {result['language']}")
+                        output_lines.append(f"\nTranscription:\n{result['text']}")
+                        output = '\n'.join(output_lines)
+                else:
+                    # Standard format
+                    output_lines = []
+                    output_lines.append(f"File: {audio_file.name}")
+                    if 'language' in result:
+                        output_lines.append(f"Language: {result['language']}")
+                    output_lines.append(f"\nTranscription:\n{result['text']}")
+                    output = '\n'.join(output_lines)
             
             # Output results
             if output_dir:
@@ -481,6 +622,12 @@ Tatar, Hawaiian, Lingala, Hausa, Bashkir, Javanese, Sundanese, and many more!
         help='Device to run on (auto-detected if not specified)'
     )
     
+    parser.add_argument(
+        '--newspaper-article',
+        action='store_true',
+        help='Format transcription as a newspaper article using AI (requires OPENAI_API_KEY)'
+    )
+    
     args = parser.parse_args()
     
     # Check if input is a directory or file
@@ -545,12 +692,49 @@ Tatar, Hawaiian, Lingala, Hausa, Bashkir, Javanese, Sundanese, and many more!
             else:
                 result = stt.transcribe(args.audio_file, language=args.language, task=task)
                 
-                # Format output
-                output_lines = []
-                if 'language' in result:
-                    output_lines.append(f"Language: {result['language']}")
-                output_lines.append(f"\nTranscription:\n{result['text']}")
-                output = '\n'.join(output_lines)
+                # Check if newspaper article formatting is requested
+                if args.newspaper_article:
+                    try:
+                        article = stt.format_as_newspaper_article(
+                            result['text'],
+                            language=result.get('language')
+                        )
+                        
+                        # Format as newspaper article
+                        output_lines = []
+                        if 'language' in result:
+                            output_lines.append(f"Language: {result['language']}")
+                        output_lines.append(f"\n{'=' * 80}")
+                        output_lines.append(f"HEADLINE: {article.get('title', 'Untitled')}")
+                        output_lines.append(f"{'=' * 80}\n")
+                        
+                        if 'lead' in article and article['lead']:
+                            output_lines.append(f"LEAD:\n{article['lead']}\n")
+                        
+                        output_lines.append(f"ARTICLE:\n{article.get('body', '')}")
+                        
+                        if 'sections' in article and article['sections']:
+                            output_lines.append(f"\n\nMAIN SECTIONS:")
+                            for section in article['sections']:
+                                output_lines.append(f"  • {section}")
+                        
+                        output = '\n'.join(output_lines)
+                    except Exception as e:
+                        print(f"⚠ Warning: Could not format as newspaper article: {e}")
+                        print(f"Falling back to standard transcription format...")
+                        # Fall back to standard format
+                        output_lines = []
+                        if 'language' in result:
+                            output_lines.append(f"Language: {result['language']}")
+                        output_lines.append(f"\nTranscription:\n{result['text']}")
+                        output = '\n'.join(output_lines)
+                else:
+                    # Standard format
+                    output_lines = []
+                    if 'language' in result:
+                        output_lines.append(f"Language: {result['language']}")
+                    output_lines.append(f"\nTranscription:\n{result['text']}")
+                    output = '\n'.join(output_lines)
             
             # Output results
             if args.output:
