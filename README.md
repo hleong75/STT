@@ -10,6 +10,7 @@ A robust, multi-language speech-to-text system powered by OpenAI's Whisper with 
 - **⚡ Multiple Model Sizes**: From tiny (fast) to large (most accurate)
 - **🕐 Timestamp Support**: Get word-level timestamps for your transcriptions
 - **🌐 Translation**: Translate any language to English
+- **📰 Newspaper Article Formatting**: AI-powered formatting to transform transcriptions into well-structured newspaper articles
 - **🔧 Easy to Use**: Simple command-line interface and Python API
 
 ## 🚀 Installation
@@ -132,6 +133,29 @@ Automatically uses CUDA if available. Force CPU:
 python stt.py audio.wav --device cpu
 ```
 
+### Newspaper Article Formatting
+
+Format transcription as a professional newspaper article:
+
+```bash
+# Format transcription as newspaper article
+python stt.py audio.wav --newspaper-article --output article.txt
+
+# With specific language
+python stt.py audio.wav --language fr --newspaper-article --output article_fr.txt
+```
+
+This feature:
+- Creates an appropriate headline/title from the first sentence
+- Structures content with proper paragraphs
+- Organizes text into lead paragraph and body sections
+- Extracts key topics mentioned in the transcription
+- Uses proper newspaper article formatting
+
+**Note**: Uses rule-based text formatting - no API key required.
+
+See `examples/newspaper_article_example.py` for a complete working example.
+
 ## 🐍 Python API
 
 You can also use the STT system programmatically:
@@ -150,6 +174,13 @@ print(result['text'])
 result = stt.transcribe_with_timestamps('audio.wav', language='fr')
 for segment in result['segments']:
     print(f"[{segment['start']:.2f}s - {segment['end']:.2f}s] {segment['text']}")
+
+# Format transcription as newspaper article
+result = stt.transcribe('news_audio.wav', language='en')
+article = stt.format_as_newspaper_article(result['text'], language='en')
+print(f"Title: {article['title']}")
+print(f"Lead: {article['lead']}")
+print(f"Body: {article['body']}")
 ```
 
 ## 🌍 Supported Languages
@@ -239,6 +270,13 @@ python stt.py noisy_meeting.wav --language en --timestamps --model medium
 
 ```bash
 python stt.py chinese_podcast.m4a --language zh --translate
+```
+
+### Example 5: Format transcription as a newspaper article
+
+```bash
+# Format a news recording as a newspaper article
+python stt.py news_recording.wav --language en --newspaper-article --output news_article.txt
 ```
 
 ## 🛠️ Troubleshooting

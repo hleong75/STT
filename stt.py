@@ -276,6 +276,83 @@ class PowerfulSTT:
             'language': result.get('language', 'unknown'),
             'segments': segments
         }
+    
+    def format_as_newspaper_article(self, transcription_text, language=None):
+        """
+        Format transcription text as a newspaper article using rule-based formatting.
+        
+        Args:
+            transcription_text: Raw transcription text to format
+            language: Language code of the transcription (e.g., 'en', 'fr')
+            
+        Returns:
+            Dictionary containing formatted article with title, body, etc.
+        """
+        print("Formatting transcription as newspaper article...")
+        
+        # Clean and normalize the text
+        text = transcription_text.strip()
+        
+        # Split into sentences
+        # Simple sentence splitting on common punctuation
+        import re
+        sentences = re.split(r'[.!?]+\s+', text)
+        sentences = [s.strip() for s in sentences if s.strip()]
+        
+        if not sentences:
+            return {
+                'title': 'Untitled Article',
+                'lead': '',
+                'body': text,
+                'sections': []
+            }
+        
+        # Generate title from first sentence (truncate if too long)
+        title = sentences[0] if sentences else 'Untitled Article'
+        if len(title) > 100:
+            # Take first meaningful words as title
+            words = title.split()[:10]
+            title = ' '.join(words) + '...'
+        
+        # Lead paragraph: first 1-2 sentences
+        lead_sentences = sentences[:min(2, len(sentences))]
+        lead = '. '.join(lead_sentences) + '.'
+        
+        # Body: remaining sentences organized into paragraphs
+        remaining_sentences = sentences[2:] if len(sentences) > 2 else []
+        
+        # Group sentences into paragraphs (approximately 3-4 sentences per paragraph)
+        paragraphs = []
+        paragraph_size = 3
+        
+        for i in range(0, len(remaining_sentences), paragraph_size):
+            paragraph_sentences = remaining_sentences[i:i + paragraph_size]
+            paragraph = '. '.join(paragraph_sentences)
+            if paragraph:
+                paragraphs.append(paragraph + '.')
+        
+        body = '\n\n'.join(paragraphs) if paragraphs else ''
+        
+        # Extract key topics/sections (look for repeated key words)
+        sections = []
+        # Simple keyword extraction: find common important words
+        words = re.findall(r'\b[A-Z][a-z]+\b', text)  # Capitalized words
+        if words:
+            # Count frequency
+            from collections import Counter
+            word_counts = Counter(words)
+            # Get top 3-5 most common capitalized words as topics
+            common_words = [word for word, count in word_counts.most_common(5) if count > 1]
+            sections = common_words[:3]  # Limit to top 3
+        
+        print("✓ Successfully formatted as newspaper article")
+        
+        return {
+            'title': title,
+            'lead': lead,
+            'body': body,
+            'sections': sections
+        }
 
 
 def process_directory(stt, directory_path, args):
@@ -342,13 +419,52 @@ def process_directory(stt, directory_path, args):
             else:
                 result = stt.transcribe(str(audio_file), language=args.language, task=task, verbose=False)
                 
-                # Format output
-                output_lines = []
-                output_lines.append(f"File: {audio_file.name}")
-                if 'language' in result:
-                    output_lines.append(f"Language: {result['language']}")
-                output_lines.append(f"\nTranscription:\n{result['text']}")
-                output = '\n'.join(output_lines)
+                # Check if newspaper article formatting is requested
+                if args.newspaper_article:
+                    try:
+                        article = stt.format_as_newspaper_article(
+                            result['text'],
+                            language=result.get('language')
+                        )
+                        
+                        # Format as newspaper article
+                        output_lines = []
+                        output_lines.append(f"File: {audio_file.name}")
+                        if 'language' in result:
+                            output_lines.append(f"Language: {result['language']}")
+                        output_lines.append(f"\n{'=' * 80}")
+                        output_lines.append(f"HEADLINE: {article.get('title', 'Untitled')}")
+                        output_lines.append(f"{'=' * 80}\n")
+                        
+                        if 'lead' in article and article['lead']:
+                            output_lines.append(f"LEAD:\n{article['lead']}\n")
+                        
+                        output_lines.append(f"ARTICLE:\n{article.get('body', '')}")
+                        
+                        if 'sections' in article and article['sections']:
+                            output_lines.append(f"\n\nMAIN SECTIONS:")
+                            for section in article['sections']:
+                                output_lines.append(f"  • {section}")
+                        
+                        output = '\n'.join(output_lines)
+                    except Exception as e:
+                        print(f"⚠ Warning: Could not format as newspaper article: {e}")
+                        print(f"Falling back to standard transcription format...")
+                        # Fall back to standard format
+                        output_lines = []
+                        output_lines.append(f"File: {audio_file.name}")
+                        if 'language' in result:
+                            output_lines.append(f"Language: {result['language']}")
+                        output_lines.append(f"\nTranscription:\n{result['text']}")
+                        output = '\n'.join(output_lines)
+                else:
+                    # Standard format
+                    output_lines = []
+                    output_lines.append(f"File: {audio_file.name}")
+                    if 'language' in result:
+                        output_lines.append(f"Language: {result['language']}")
+                    output_lines.append(f"\nTranscription:\n{result['text']}")
+                    output = '\n'.join(output_lines)
             
             # Output results
             if output_dir:
@@ -481,6 +597,12 @@ Tatar, Hawaiian, Lingala, Hausa, Bashkir, Javanese, Sundanese, and many more!
         help='Device to run on (auto-detected if not specified)'
     )
     
+    parser.add_argument(
+        '--newspaper-article',
+        action='store_true',
+        help='Format transcription as a newspaper article with structured layout'
+    )
+    
     args = parser.parse_args()
     
     # Check if input is a directory or file
@@ -545,12 +667,49 @@ Tatar, Hawaiian, Lingala, Hausa, Bashkir, Javanese, Sundanese, and many more!
             else:
                 result = stt.transcribe(args.audio_file, language=args.language, task=task)
                 
-                # Format output
-                output_lines = []
-                if 'language' in result:
-                    output_lines.append(f"Language: {result['language']}")
-                output_lines.append(f"\nTranscription:\n{result['text']}")
-                output = '\n'.join(output_lines)
+                # Check if newspaper article formatting is requested
+                if args.newspaper_article:
+                    try:
+                        article = stt.format_as_newspaper_article(
+                            result['text'],
+                            language=result.get('language')
+                        )
+                        
+                        # Format as newspaper article
+                        output_lines = []
+                        if 'language' in result:
+                            output_lines.append(f"Language: {result['language']}")
+                        output_lines.append(f"\n{'=' * 80}")
+                        output_lines.append(f"HEADLINE: {article.get('title', 'Untitled')}")
+                        output_lines.append(f"{'=' * 80}\n")
+                        
+                        if 'lead' in article and article['lead']:
+                            output_lines.append(f"LEAD:\n{article['lead']}\n")
+                        
+                        output_lines.append(f"ARTICLE:\n{article.get('body', '')}")
+                        
+                        if 'sections' in article and article['sections']:
+                            output_lines.append(f"\n\nMAIN SECTIONS:")
+                            for section in article['sections']:
+                                output_lines.append(f"  • {section}")
+                        
+                        output = '\n'.join(output_lines)
+                    except Exception as e:
+                        print(f"⚠ Warning: Could not format as newspaper article: {e}")
+                        print(f"Falling back to standard transcription format...")
+                        # Fall back to standard format
+                        output_lines = []
+                        if 'language' in result:
+                            output_lines.append(f"Language: {result['language']}")
+                        output_lines.append(f"\nTranscription:\n{result['text']}")
+                        output = '\n'.join(output_lines)
+                else:
+                    # Standard format
+                    output_lines = []
+                    if 'language' in result:
+                        output_lines.append(f"Language: {result['language']}")
+                    output_lines.append(f"\nTranscription:\n{result['text']}")
+                    output = '\n'.join(output_lines)
             
             # Output results
             if args.output:
