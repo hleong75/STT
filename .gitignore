@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Models and data
+*.pth
+*.pt
+*.onnx
+*.pb
+models/
+data/
+
+# Audio files (examples)
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+*.wma
+*.aac
+
+# Output (but keep requirements files)
+output/
+transcripts/
+*.txt
+!requirements*.txt
+!QUICKSTART.md
+!CONTRIBUTING.md
+!README.md
+!LICENSE
+
+# Temp files
+/tmp/
+*.tmp

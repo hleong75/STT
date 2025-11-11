@@ -1,0 +1,2 @@
+# Additional requirements for real-time transcription example
+sounddevice>=0.4.6
