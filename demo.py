@@ -56,19 +56,25 @@ def demo_model_comparison():
     
     models = [
         ('tiny', 'Very Fast', '1 GB', 'Good', 'Quick transcriptions'),
+        ('tiny.en', 'Very Fast', '1 GB', 'Good', 'English-only (faster)'),
         ('base', 'Fast', '1 GB', 'Better', 'General use (default)'),
+        ('base.en', 'Fast', '1 GB', 'Better', 'English-only (faster)'),
         ('small', 'Moderate', '2 GB', 'Great', 'Better accuracy'),
+        ('small.en', 'Moderate', '2 GB', 'Great', 'English-only (faster)'),
         ('medium', 'Slow', '5 GB', 'Excellent', 'Professional use'),
-        ('large', 'Very Slow', '10 GB', 'Best', 'Maximum accuracy'),
+        ('medium.en', 'Slow', '5 GB', 'Excellent', 'English-only (faster)'),
+        ('large-v3', 'Very Slow', '10 GB', 'Best', 'Maximum accuracy'),
+        ('turbo', 'Fast', '6 GB', 'Excellent', 'Speed + accuracy'),
     ]
     
-    header = f"{'Model':<10} {'Speed':<12} {'Memory':<10} {'Accuracy':<12} {'Best For'}"
+    header = f"{'Model':<12} {'Speed':<12} {'Memory':<10} {'Accuracy':<12} {'Best For'}"
     print(header)
     print("-" * len(header))
     
     for model, speed, memory, accuracy, best_for in models:
-        print(f"{model:<10} {speed:<12} {memory:<10} {accuracy:<12} {best_for}")
+        print(f"{model:<12} {speed:<12} {memory:<10} {accuracy:<12} {best_for}")
     
+    print("\nNote: Models with .en suffix work only with English but are faster.")
     print_separator()
 
 
@@ -81,11 +87,14 @@ def demo_usage_examples():
         ("Basic transcription", "python stt.py audio.wav"),
         ("Specify language (French)", "python stt.py audio.wav --language fr"),
         ("Use better model", "python stt.py audio.wav --model medium"),
+        ("English-only (faster)", "python stt.py english_audio.wav --model base.en"),
+        ("Latest model", "python stt.py audio.wav --model large-v3"),
+        ("Fast + accurate", "python stt.py audio.wav --model turbo"),
         ("Get timestamps", "python stt.py audio.wav --timestamps"),
         ("Save to file", "python stt.py audio.wav --output transcript.txt"),
         ("Translate to English", "python stt.py chinese_audio.wav --translate"),
         ("Batch processing", "python examples/batch_transcribe.py input_dir/ output_dir/"),
-        ("Real-time transcription", "python examples/realtime_transcribe.py --model tiny"),
+        ("Real-time transcription", "python examples/realtime_transcribe.py --model tiny.en"),
     ]
     
     for description, command in examples:

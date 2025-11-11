@@ -86,7 +86,11 @@ Use a larger model for better accuracy (but slower):
 python stt.py audio.wav --model medium
 ```
 
-Available models: `tiny`, `base`, `small`, `medium`, `large`
+Available models:
+- **Multilingual**: `tiny`, `base`, `small`, `medium`, `large`, `large-v1`, `large-v2`, `large-v3`, `large-v3-turbo`, `turbo`
+- **English-only (faster)**: `tiny.en`, `base.en`, `small.en`, `medium.en`
+
+Use `.en` models for English audio to get faster transcription with similar accuracy.
 
 ### Translation
 
@@ -162,11 +166,14 @@ The system supports 99+ languages including:
 
 | Model  | Speed | Memory | Accuracy | Best For |
 |--------|-------|--------|----------|----------|
-| tiny   | ⚡⚡⚡  | 1 GB   | Good     | Quick transcription |
-| base   | ⚡⚡    | 1 GB   | Better   | General use (default) |
-| small  | ⚡     | 2 GB   | Great    | Better accuracy |
-| medium | 🐌    | 5 GB   | Excellent| Professional use |
-| large  | 🐌🐌  | 10 GB  | Best     | Maximum accuracy |
+| tiny / tiny.en   | ⚡⚡⚡  | 1 GB   | Good     | Quick transcription, real-time |
+| base / base.en   | ⚡⚡    | 1 GB   | Better   | General use (default) |
+| small / small.en  | ⚡     | 2 GB   | Great    | Better accuracy |
+| medium / medium.en | 🐌    | 5 GB   | Excellent| Professional use |
+| large / large-v3  | 🐌🐌  | 10 GB  | Best     | Maximum accuracy |
+| turbo  | ⚡⚡⚡  | 6 GB   | Excellent| Fast + accurate balance |
+
+**Note**: Models with `.en` suffix are English-only and ~2x faster than their multilingual counterparts with similar accuracy for English audio. The `turbo` and `large-v3` models are the latest versions with improved performance.
 
 ## 🔧 Advanced Features
 
