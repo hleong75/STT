@@ -10,11 +10,53 @@ import sys
 import warnings
 from pathlib import Path
 
-import whisper
-import numpy as np
-import soundfile as sf
-import noisereduce as nr
-import torch
+# Try to import required dependencies with helpful error messages
+try:
+    import whisper
+except ImportError:
+    print("❌ Error: OpenAI Whisper is not installed.", file=sys.stderr)
+    print("\nTo fix this issue, please install the required dependencies:", file=sys.stderr)
+    print("  pip install -r requirements.txt", file=sys.stderr)
+    print("\nOr install just the missing package:", file=sys.stderr)
+    print("  pip install openai-whisper", file=sys.stderr)
+    print("\nFor more information, see README.md or QUICKSTART.md", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    import numpy as np
+except ImportError:
+    print("❌ Error: NumPy is not installed.", file=sys.stderr)
+    print("\nTo fix this issue, please install the required dependencies:", file=sys.stderr)
+    print("  pip install -r requirements.txt", file=sys.stderr)
+    print("\nFor more information, see README.md or QUICKSTART.md", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    import soundfile as sf
+except ImportError:
+    print("❌ Error: soundfile is not installed.", file=sys.stderr)
+    print("\nTo fix this issue, please install the required dependencies:", file=sys.stderr)
+    print("  pip install -r requirements.txt", file=sys.stderr)
+    print("\nFor more information, see README.md or QUICKSTART.md", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    import noisereduce as nr
+except ImportError:
+    print("❌ Error: noisereduce is not installed.", file=sys.stderr)
+    print("\nTo fix this issue, please install the required dependencies:", file=sys.stderr)
+    print("  pip install -r requirements.txt", file=sys.stderr)
+    print("\nFor more information, see README.md or QUICKSTART.md", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    import torch
+except ImportError:
+    print("❌ Error: PyTorch is not installed.", file=sys.stderr)
+    print("\nTo fix this issue, please install the required dependencies:", file=sys.stderr)
+    print("  pip install -r requirements.txt", file=sys.stderr)
+    print("\nFor more information, see README.md or QUICKSTART.md", file=sys.stderr)
+    sys.exit(1)
 
 warnings.filterwarnings("ignore")
 
