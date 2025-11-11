@@ -157,6 +157,8 @@ This feature:
 
 **Note**: Requires `OPENAI_API_KEY` environment variable to be set with a valid OpenAI API key.
 
+See `examples/newspaper_article_example.py` for a complete working example.
+
 ## 🐍 Python API
 
 You can also use the STT system programmatically:
