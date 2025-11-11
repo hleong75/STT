@@ -215,6 +215,9 @@ def process_directory(stt, directory_path, args):
         stt: PowerfulSTT instance
         directory_path: Path to directory containing audio files
         args: Command-line arguments
+        
+    Returns:
+        Number of failed files (0 if all succeeded)
     """
     # Supported audio extensions
     audio_extensions = {'.wav', '.mp3', '.flac', '.ogg', '.m4a', '.wma', '.aac'}
@@ -228,7 +231,7 @@ def process_directory(stt, directory_path, args):
     
     if not audio_files:
         print(f"No audio files found in {directory_path}")
-        return
+        return 1  # Return 1 to indicate failure (no files to process)
     
     print(f"\nFound {len(audio_files)} audio files to process")
     print("=" * 80)
@@ -293,10 +296,14 @@ def process_directory(stt, directory_path, args):
     
     print("\n" + "=" * 80)
     print(f"Processing complete: {success_count}/{len(audio_files)} files succeeded")
-    if success_count < len(audio_files):
-        print(f"⚠ {len(audio_files) - success_count} files failed")
+    
+    failure_count = len(audio_files) - success_count
+    if failure_count > 0:
+        print(f"⚠ {failure_count} files failed")
     else:
         print("✓ All files processed successfully!")
+    
+    return failure_count
 
 
 def main():
@@ -416,7 +423,9 @@ Tatar, Hawaiian, Lingala, Hausa, Bashkir, Javanese, Sundanese, and many more!
     # Process directory or single file
     try:
         if is_directory:
-            process_directory(stt, args.audio_file, args)
+            failure_count = process_directory(stt, args.audio_file, args)
+            if failure_count > 0:
+                sys.exit(1)  # Exit with error if any files failed
         else:
             # Original single file processing
             task = 'translate' if args.translate else 'transcribe'
@@ -461,6 +470,9 @@ Tatar, Hawaiian, Lingala, Hausa, Bashkir, Javanese, Sundanese, and many more!
     except Exception as e:
         print(f"Error during transcription: {e}", file=sys.stderr)
         sys.exit(1)
+    
+    # Explicitly exit with success code
+    sys.exit(0)
 
 
 if __name__ == '__main__':
