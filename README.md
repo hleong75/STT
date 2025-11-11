@@ -219,6 +219,23 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 - [OpenAI Whisper](https://github.com/openai/whisper) - The powerful STT model
 - [noisereduce](https://github.com/timsainb/noisereduce) - Noise reduction library
 
+## 🇫🇷 En Français
+
+Ce système offre un programme **ultra puissant** de reconnaissance vocale (speech-to-text) qui:
+
+- ✅ **Supporte tous les langages**: Plus de 99 langues supportées incluant le français, l'anglais, l'espagnol, le chinois, l'arabe, et bien d'autres
+- ✅ **Ultra robuste aux bruits**: Prétraitement avancé de réduction de bruit pour gérer les environnements bruyants
+- ✅ **Haute précision**: Propulsé par Whisper d'OpenAI, le modèle de pointe en reconnaissance vocale
+- ✅ **Facile à utiliser**: Interface en ligne de commande simple et API Python
+
+**Utilisation rapide:**
+```bash
+pip install -r requirements.txt
+python stt.py audio.wav --language fr
+```
+
+Pour plus d'informations, consultez le [Guide de démarrage rapide](QUICKSTART.md).
+
 ## 📚 Additional Resources
 
 - [Whisper Paper](https://arxiv.org/abs/2212.04356)
